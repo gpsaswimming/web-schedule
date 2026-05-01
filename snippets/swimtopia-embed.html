@@ -1,0 +1,65 @@
+<!-- iframe-resizer (load once) -->
+<script src="https://cdnjs.cloudflare.com/ajax/libs/iframe-resizer/4.3.9/iframeResizer.min.js"></script>
+
+<!-- ROSTERS / DIVISIONS -->
+<div id="top"></div>
+<iframe
+    src="https://meet-schedule.gpsaswimming.org/divisions.html"
+    style="width: 100%; border: none; overflow: hidden;"
+    scrolling="no"
+    id="gpsa-divisions">
+</iframe>
+
+<!-- MEET SCHEDULES HEADER -->
+<iframe
+    src="https://meet-schedule.gpsaswimming.org/header.html"
+    style="width: 100%; border: none; overflow: hidden;"
+    scrolling="no"
+    id="gpsa-header">
+</iframe>
+
+<!-- RED DIVISION SCHEDULE -->
+<div id="red"></div>
+<iframe
+    src="https://meet-schedule.gpsaswimming.org/schedule-red.html"
+    style="width: 100%; border: none; overflow: hidden;"
+    scrolling="no"
+    id="gpsa-schedule-red">
+</iframe>
+
+<!-- WHITE DIVISION SCHEDULE -->
+<div id="white"></div>
+<iframe
+    src="https://meet-schedule.gpsaswimming.org/schedule-white.html"
+    style="width: 100%; border: none; overflow: hidden;"
+    scrolling="no"
+    id="gpsa-schedule-white">
+</iframe>
+
+<!-- BLUE DIVISION SCHEDULE -->
+<div id="blue"></div>
+<iframe
+    src="https://meet-schedule.gpsaswimming.org/schedule-blue.html"
+    style="width: 100%; border: none; overflow: hidden;"
+    scrolling="no"
+    id="gpsa-schedule-blue">
+</iframe>
+
+<!-- INVITATIONALS -->
+<div id="invitationals"></div>
+<iframe
+    src="https://meet-schedule.gpsaswimming.org/invitationals.html"
+    style="width: 100%; border: none; overflow: hidden;"
+    scrolling="no"
+    id="gpsa-invitationals">
+</iframe>
+
+<!-- Initialize all iframes -->
+<script>
+iFrameResize({
+    log: false,
+    checkOrigin: false,
+    heightCalculationMethod: 'lowestElement',
+    resizeFrom: 'child'
+}, 'iframe[id^="gpsa-"]');
+</script>

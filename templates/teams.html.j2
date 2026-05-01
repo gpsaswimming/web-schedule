@@ -1,0 +1,31 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>GPSA Teams Quick Access</title>
+    <script src="https://cdn.jsdelivr.net/npm/iframe-resizer@4/js/iframeResizer.contentWindow.min.js"></script>
+    <link rel="stylesheet" href="https://css.gpsaswimming.org/gpsa-swimtopia-iframe.css">
+    <link rel="stylesheet" href="https://css.gpsaswimming.org/gpsa-main.css">
+</head>
+<body>
+<table id="divisions">
+<tbody>
+<tr>
+	<th><strong>Red Division</strong></th>
+	<th><strong>White Division</strong></th>
+	<th><strong>Blue Division</strong></th>
+</tr>
+<tr>
+{% for division in divisions %}
+	<td>
+{% for team in division %}
+		<a href="https://www.gpsaswimming.org/teams#{{ team.anchor }}" target="_parent">{{ team.name }}</a><br>
+{% endfor %}
+	</td>
+{% endfor %}
+</tr>
+</tbody>
+</table>
+</body>
+</html>

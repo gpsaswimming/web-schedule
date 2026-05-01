@@ -1,0 +1,31 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>GPSA Invitationals Schedule</title>
+    <script src="https://cdn.jsdelivr.net/npm/iframe-resizer@4/js/iframeResizer.contentWindow.min.js"></script>
+    <link rel="stylesheet" href="https://css.gpsaswimming.org/gpsa-swimtopia-iframe.css">
+    <link rel="stylesheet" href="https://css.gpsaswimming.org/gpsa-main.css">
+</head>
+<body>
+<div>
+<h3><a id="invitationals"></a>Invitationals</h3>
+<table id="meet_schedule">
+<tbody>
+<tr>
+	<th style="width:40%">DATE</th>
+	<th style="width:60%">NAME</th>
+</tr>
+{% for event in events %}
+<tr>
+	<td>{{ event.date }}</td>
+	<td>{{ event.name }}{% if event.location %}<br><span style="font-size: 0.85em;">{{ event.location }}</span>{% endif %}</td>
+</tr>
+{% endfor %}
+</tbody>
+</table>
+<p style="margin-top: 1em; display: flex; justify-content: space-between;"><a href="https://results.gpsaswimming.org/{{ year }}/#invitationals" target="_blank">View Meet Results</a><a href="https://www.gpsaswimming.org/meet-schedule#top" target="_parent">Back to top of page</a></p>
+</div>
+</body>
+</html>
