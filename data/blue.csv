@@ -1,6 +1,5 @@
 MeetDate,MeetStart,HomeTeam,VisitingTeam,SwimCourse,MeetName,Location,MeetTemplateID,Team3,Team4
 6/15/2026,6:00 PM,RRST,VG,SCM,,,29332,,
-6/15/2026,6:00 PM,EL,JRCC,SCM,,,29332,,
 6/18/2026,6:00 PM,BLMAR,RRST,SCM,,,29332,,
 6/18/2026,6:00 PM,WYTHE,JRCC,SCM,,,29332,,
 6/22/2026,6:00 PM,VG,BLMAR,SCM,,,29332,,
@@ -14,3 +13,4 @@ MeetDate,MeetStart,HomeTeam,VisitingTeam,SwimCourse,MeetName,Location,MeetTempla
 7/13/2026,6:00 PM,RRST,WYTHE,SCM,,,29332,,
 7/13/2026,6:00 PM,BLMAR,EL,SCM,,,29332,,
 7/16/2026,6:00 PM,WYTHE,EL,SCM,,,29332,,
+7/21/2026,6:00 PM,JRCC,EL,SCM,,,29332,,
