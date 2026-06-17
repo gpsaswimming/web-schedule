@@ -25,6 +25,8 @@
         .tab-btn { padding: .4rem .9rem; font-weight: 600; font-size: .875rem; color: #374151; border: none; background: transparent; border-radius: .75rem; cursor: pointer; white-space: nowrap; }
         .tab-btn:hover { background: #e5e9f0; }
         .tab-btn.tab-active { background: var(--gpsa-blue); color: #fff; }
+        /* Divider setting Invitationals (a league-wide event type) apart from the divisions */
+        .tab-sep { align-self: stretch; width: 1px; background: #d1d5db; margin: .2rem .4rem; }
         [data-panel] { display: none; }
         [data-panel].panel-active { display: block; }
 
@@ -101,6 +103,7 @@
         <button class="tab-btn" data-tab="{{ ds.key }}" type="button">{{ ds.title }}</button>
         {% endfor %}
         {% if events %}
+        <span class="tab-sep" aria-hidden="true"></span>
         <button class="tab-btn" data-tab="invitationals" type="button">Invitationals</button>
         {% endif %}
     </div>
