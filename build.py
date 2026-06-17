@@ -99,23 +99,41 @@ def extract_teams_from_csv(path):
     return sorted(seen_names.values(), key=lambda a: team_name(a))
 
 
-def load_division_csv(path):
-    """Load a division CSV and return meets grouped by date, sorted chronologically."""
-    meets_by_date = {}
+def load_division_meets(path, division):
+    """Load a division CSV into a flat, chronological list of meet dicts.
+
+    Each meet carries its division (for the "All Divisions" badge) and an ISO date
+    (the join key for the client-side scores feed — see schedule.html.j2).
+    """
+    meets = []
     with open(path, newline="") as f:
         reader = csv.DictReader(f)
         for row in reader:
             dt = parse_date(row["MeetDate"])
-            meets_by_date.setdefault(dt, []).append({
+            meets.append({
+                "division": division,
+                "sort_key": dt,
+                "iso_date": dt.strftime("%Y-%m-%d"),
+                "date": format_date_header(dt),
                 "home": team_name(row["HomeTeam"]),
                 "visitor": team_name(row["VisitingTeam"]),
-                # ISO date is the join key for the client-side scores feed (see schedule.html.j2)
-                "iso_date": dt.strftime("%Y-%m-%d"),
             })
+    meets.sort(key=lambda m: m["sort_key"])
+    return meets
 
+
+def group_by_date(meets):
+    """Group a flat chronological meet list into per-date groups.
+
+    The template shows the date once per group on desktop (via loop.first) and on
+    every card on mobile.
+    """
+    by_date = {}
+    for m in meets:
+        by_date.setdefault(m["sort_key"], []).append(m)
     return [
-        {"date": format_date_header(dt), "meets": meets}
-        for dt, meets in sorted(meets_by_date.items())
+        {"date": format_date_header(dt), "meets": by_date[dt]}
+        for dt in sorted(by_date)
     ]
 
 
@@ -162,8 +180,9 @@ def build():
 
     year = detect_year(data_dir)
 
-    # Build division schedule pages and collect rosters
-    schedule_template = env.get_template("schedule.html.j2")
+    # Load each division's meets and collect rosters (rosters feed divisions.html / teams.html)
+    division_schedules = []   # per-division tab data for the schedule page
+    all_meets = []            # every dual meet, for the "All Divisions" tab
     division_rosters = {}
 
     for division in DIVISIONS:
@@ -172,36 +191,72 @@ def build():
             print(f"  Skipping {division} (no {csv_path})")
             continue
 
-        # Extract teams for roster page
+        # Extract teams for roster pages (divisions.html / teams.html)
         team_abbrs = extract_teams_from_csv(csv_path)
         division_rosters[division] = [
             {"name": team_name(a), "url": team_roster_url(a), "anchor": team_anchor(a)}
             for a in team_abbrs
         ]
 
-        # Build schedule page
-        date_groups = load_division_csv(csv_path)
-        output = schedule_template.render(
-            division=division,
-            division_title=division.capitalize(),
-            date_groups=date_groups,
+        meets = load_division_meets(csv_path, division)
+        all_meets.extend(meets)
+        division_schedules.append({
+            "key": division,
+            "title": division.capitalize(),
+            "date_groups": group_by_date(meets),
+        })
+
+    # Invitationals data (its own tab; rendered inline on the schedule page)
+    inv_path = data_dir / "invitationals.csv"
+    events = load_invitationals_csv(inv_path) if inv_path.exists() else []
+
+    # Combined "All Divisions" view: chronological, then by division order, then home team
+    div_order = {d: i for i, d in enumerate(DIVISIONS)}
+    all_meets.sort(key=lambda m: (m["sort_key"], div_order.get(m["division"], 99), m["home"]))
+    all_groups = group_by_date(all_meets)
+
+    # Team filter options for the "All Divisions" tab — unique display names, sorted
+    teams = sorted({m["home"] for m in all_meets} | {m["visitor"] for m in all_meets})
+
+    # Build the single tabbed schedule page
+    schedule_template = env.get_template("schedule.html.j2")
+    output = schedule_template.render(
+        year=year,
+        all_groups=all_groups,
+        division_schedules=division_schedules,
+        events=events,
+        teams=teams,
+    )
+    (dist / "schedule.html").write_text(output)
+    print(f"  Built schedule.html ({len(all_meets)} meets, {len(division_schedules)} divisions, "
+          f"{len(events)} invitationals, {len(teams)} teams)")
+
+    # --- Legacy outputs (TRANSITIONAL) ---------------------------------------
+    # The live SwimTopia page still embeds header.html, schedule-{div}.html and
+    # invitationals.html as separate iframes. Keep emitting them so production
+    # does not break before the embed is switched to the single schedule.html.
+    # Remove this block (and the _legacy_schedule.html.j2 + header.html.j2
+    # templates) once SwimTopia points at schedule.html.
+    legacy_schedule_template = env.get_template("_legacy_schedule.html.j2")
+    for ds in division_schedules:
+        output = legacy_schedule_template.render(
+            division=ds["key"],
+            division_title=ds["title"],
+            date_groups=ds["date_groups"],
             year=year,
         )
-        out_path = dist / f"schedule-{division}.html"
-        out_path.write_text(output)
-        print(f"  Built {out_path.name} ({sum(len(g['meets']) for g in date_groups)} meets, {len(team_abbrs)} teams)")
+        (dist / f"schedule-{ds['key']}.html").write_text(output)
+        print(f"  Built schedule-{ds['key']}.html (legacy)")
 
-    # Build invitationals page
-    inv_path = data_dir / "invitationals.csv"
-    if inv_path.exists():
+    if events:
         inv_template = env.get_template("invitationals.html.j2")
-        events = load_invitationals_csv(inv_path)
-        output = inv_template.render(events=events, year=year)
-        out_path = dist / "invitationals.html"
-        out_path.write_text(output)
-        print(f"  Built {out_path.name} ({len(events)} events)")
-    else:
-        print(f"  Skipping invitationals (no {inv_path})")
+        (dist / "invitationals.html").write_text(inv_template.render(events=events, year=year))
+        print("  Built invitationals.html (legacy)")
+
+    header_template = env.get_template("header.html.j2")
+    (dist / "header.html").write_text(header_template.render(year=year))
+    print("  Built header.html (legacy)")
+    # -------------------------------------------------------------------------
 
     # Build divisions (rosters) page from CSV-derived teams
     if division_rosters:
@@ -224,12 +279,6 @@ def build():
         out_path = dist / "teams.html"
         out_path.write_text(output)
         print(f"  Built {out_path.name}")
-
-    # Build meet schedules header page
-    header_template = env.get_template("header.html.j2")
-    output = header_template.render(year=year)
-    (dist / "header.html").write_text(output)
-    print("  Built header.html")
 
     # Copy CNAME if present
     if Path("CNAME").exists():

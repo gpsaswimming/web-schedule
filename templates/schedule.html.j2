@@ -3,122 +3,254 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>GPSA {{ division_title }} Division Schedule</title>
+    <title>GPSA {{ year }} Meet Schedule</title>
     <script src="https://cdn.jsdelivr.net/npm/iframe-resizer@4/js/iframeResizer.contentWindow.min.js"></script>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
     <link rel="stylesheet" href="https://css.gpsaswimming.org/gpsa-swimtopia-iframe.css">
-    <link rel="stylesheet" href="https://css.gpsaswimming.org/gpsa-main.css">
+    <script>
+        tailwind.config = {
+            theme: { extend: {
+                fontFamily: { sans: ['Inter', 'sans-serif'] },
+                colors: { 'gpsa-blue': '#002366', 'gpsa-blue-light': '#0033a0', 'gpsa-red': '#d9242b' }
+            } }
+        }
+    </script>
     <style>
-        /* Scores are filled in client-side from the results site (see script below). */
-        #meet_schedule td.score-cell { text-align: center; }
-        #meet_schedule td.winner { font-weight: 700; color: #002366; }   /* GPSA navy */
-        #meet_schedule td.loser { color: #6b7280; }                       /* muted gray */
-        #meet_schedule td.team-cell { cursor: pointer; }
-        #meet_schedule tr.team-active > td { background: rgba(0, 35, 102, 0.08); }
-        #meet_schedule .results-cell a { white-space: nowrap; }
+        :root { --gpsa-blue: #002366; --gpsa-red: #d9242b; }
+        body { font-family: 'Inter', sans-serif; color: #1f2937; }
+
+        /* --- Tabs (segmented control) --- */
+        .tab-bar { display: flex; flex-wrap: wrap; gap: .25rem; background: #f3f4f6; padding: .25rem; border-radius: 1rem; }
+        .tab-btn { padding: .4rem .9rem; font-weight: 600; font-size: .875rem; color: #374151; border: none; background: transparent; border-radius: .75rem; cursor: pointer; white-space: nowrap; }
+        .tab-btn:hover { background: #e5e9f0; }
+        .tab-btn.tab-active { background: var(--gpsa-blue); color: #fff; }
+        [data-panel] { display: none; }
+        [data-panel].panel-active { display: block; }
+
+        /* --- Date groups --- */
+        .date-header { font-size: .72rem; font-weight: 700; text-transform: uppercase; letter-spacing: .05em; color: #6b7280; margin: 1rem 0 .25rem; border-bottom: 1px solid #e5e7eb; padding-bottom: .25rem; }
+
+        /* --- Meet rows: cards on mobile, aligned matchup rows on desktop (same DOM) --- */
+        .meet-row {
+            display: grid;
+            grid-template-columns: 1fr;
+            grid-template-areas: "badge" "home" "visitor" "results";
+            gap: .2rem .5rem;
+            padding: .6rem; margin-bottom: .5rem;
+            border: 1px solid #e5e7eb; border-radius: .5rem;
+        }
+        .meet-row.head { display: none; }
+        .badge, .c-badge { grid-area: badge; }
+        .c-home { grid-area: home; } .c-vis { grid-area: visitor; }
+        .results-cell { grid-area: results; }
+        /* Each side groups a team with its score: team on the left, score on the right. */
+        .side { display: flex; justify-content: space-between; align-items: baseline; gap: .75rem; min-width: 0; }
+        .team { font-weight: 500; }
+        .team-cell { cursor: pointer; }
+        .score { font-variant-numeric: tabular-nums; color: #9ca3af; white-space: nowrap; }
+        .score.winner { font-weight: 700; color: var(--gpsa-blue); }
+        .score.loser { color: #6b7280; }
+        .results-cell a { color: var(--gpsa-red); font-weight: 600; font-size: .85rem; text-decoration: none; }
+        .results-cell a:hover { text-decoration: underline; }
+        .meet-row.team-active { background: rgba(0, 35, 102, .07); border-color: #c7d2e8; }
+
+        .badge { justify-self: start; font-size: .65rem; font-weight: 700; text-transform: uppercase; letter-spacing: .03em; padding: .1rem .5rem; border-radius: 9999px; }
+        .badge-red { background: var(--gpsa-red); color: #fff; }
+        .badge-blue { background: var(--gpsa-blue); color: #fff; }
+        .badge-white { background: #f3f4f6; color: #374151; border: 1px solid #d1d5db; }
+
+        /* --- Invitationals --- */
+        .inv-row { display: grid; grid-template-columns: 1fr; gap: .1rem; padding: .6rem .6rem; border-bottom: 1px solid #eef0f3; }
+        .inv-date { font-weight: 600; color: #374151; font-size: .85rem; }
+        .inv-name { font-weight: 600; color: var(--gpsa-blue); }
+        .inv-loc { font-weight: 400; font-size: .8rem; color: #6b7280; }
+
+        @media (min-width: 640px) {
+            .meet-row {
+                grid-template-columns: 4.5rem minmax(0, 1fr) minmax(0, 1fr) 7rem;
+                grid-template-areas: "badge home visitor results";
+                gap: .75rem; align-items: center;
+                padding: .5rem .75rem; margin-bottom: 0;
+                border: none; border-bottom: 1px solid #eef0f3; border-radius: 0;
+            }
+            .meet-row.nb { grid-template-columns: minmax(0, 1fr) minmax(0, 1fr) 7rem; grid-template-areas: "home visitor results"; }
+            .c-vis { padding-left: .9rem; border-left: 1px solid #eef0f3; }   /* subtle divider between the two sides */
+            .meet-row.head { display: grid; border-bottom: 2px solid var(--gpsa-blue); font-size: .7rem; font-weight: 700; text-transform: uppercase; letter-spacing: .04em; color: #6b7280; }
+            .results-cell { text-align: center; }
+            .inv-row { grid-template-columns: 14rem 1fr; gap: 1rem; }
+        }
     </style>
 </head>
 <body>
-<div>
-<h3><a id="{{ division }}"></a>{{ division_title }} Division</h3>
-<table id="meet_schedule">
-<tbody>
-<tr>
-	<th style="width:20%">DATE</th>
-	<th style="width:20%">HOME</th>
-	<th style="width:10%">SCORE</th>
-	<th style="width:20%">VISITOR</th>
-	<th style="width:10%">SCORE</th>
-	<th style="width:20%">RESULTS</th>
-</tr>
-{% for group in date_groups %}
-{% for meet in group.meets %}
-<tr data-date="{{ meet.iso_date }}" data-home="{{ meet.home }}" data-visitor="{{ meet.visitor }}">
-{% if loop.first %}
-	<td rowspan="{{ group.meets|length }}">{{ group.date }}</td>
-{% endif %}
-	<td class="team-cell" data-team="{{ meet.home }}">{{ meet.home }}</td>
-	<td class="score-cell score-home"></td>
-	<td class="team-cell" data-team="{{ meet.visitor }}">{{ meet.visitor }}</td>
-	<td class="score-cell score-away"></td>
-	<td class="results-cell"></td>
-</tr>
-{% endfor %}
-{% endfor %}
-</tbody>
-</table>
-<p style="margin-top: 1em; display: flex; justify-content: space-between;"><a href="https://results.gpsaswimming.org/{{ year }}/#{{ division }}" target="_blank">View Meet Results</a><a href="https://www.gpsaswimming.org/meet-schedule#top" target="_parent">Back to top of page</a></p>
+{% macro meet_row(m, badge) -%}
+<div class="meet-row{% if not badge %} nb{% endif %}" data-meet data-date="{{ m.iso_date }}" data-home="{{ m.home }}" data-visitor="{{ m.visitor }}">
+    {% if badge %}<span class="badge badge-{{ m.division }}">{{ m.division|capitalize }}</span>{% endif %}
+    <div class="side c-home"><span class="team team-cell" data-team="{{ m.home }}">{{ m.home }}</span><span class="score score-home"></span></div>
+    <div class="side c-vis"><span class="team team-cell" data-team="{{ m.visitor }}">{{ m.visitor }}</span><span class="score score-away"></span></div>
+    <span class="results-cell"></span>
+</div>
+{%- endmacro %}
+
+<div class="max-w-4xl mx-auto px-3 py-4">
+    <h2 class="text-xl sm:text-2xl font-bold text-gpsa-blue mb-3">{{ year }} Meet Schedule</h2>
+
+    <div class="tab-bar mb-3" role="tablist">
+        <button class="tab-btn" data-tab="all" type="button">All Divisions</button>
+        {% for ds in division_schedules %}
+        <button class="tab-btn" data-tab="{{ ds.key }}" type="button">{{ ds.title }}</button>
+        {% endfor %}
+        {% if events %}
+        <button class="tab-btn" data-tab="invitationals" type="button">Invitationals</button>
+        {% endif %}
+    </div>
+
+    <!-- ALL DIVISIONS -->
+    <div data-panel="all">
+        <div class="mb-2 text-sm">
+            <label>Filter by team:
+                <select id="team-filter" class="ml-1 border border-gray-300 rounded px-2 py-1 text-sm">
+                    <option value="">All teams</option>
+                    {% for t in teams %}<option value="{{ t }}">{{ t }}</option>{% endfor %}
+                </select>
+            </label>
+        </div>
+        <div class="meet-row head">
+            <span class="c-badge">Div</span>
+            <div class="side c-home"><span>Home</span><span>Score</span></div>
+            <div class="side c-vis"><span>Visitor</span><span>Score</span></div>
+            <span class="results-cell">Results</span>
+        </div>
+        {% for group in all_groups %}
+        <div class="date-group">
+            <div class="date-header">{{ group.date }}</div>
+            {% for m in group.meets %}{{ meet_row(m, True) }}{% endfor %}
+        </div>
+        {% endfor %}
+    </div>
+
+    <!-- PER-DIVISION -->
+    {% for ds in division_schedules %}
+    <div data-panel="{{ ds.key }}">
+        <div class="meet-row head nb">
+            <div class="side c-home"><span>Home</span><span>Score</span></div>
+            <div class="side c-vis"><span>Visitor</span><span>Score</span></div>
+            <span class="results-cell">Results</span>
+        </div>
+        {% for group in ds.date_groups %}
+        <div class="date-group">
+            <div class="date-header">{{ group.date }}</div>
+            {% for m in group.meets %}{{ meet_row(m, False) }}{% endfor %}
+        </div>
+        {% endfor %}
+    </div>
+    {% endfor %}
+
+    <!-- INVITATIONALS -->
+    {% if events %}
+    <div data-panel="invitationals">
+        {% for e in events %}
+        <div class="inv-row">
+            <div class="inv-date">{{ e.date }}</div>
+            <div class="inv-name">{{ e.name }}{% if e.location %}<div class="inv-loc">{{ e.location }}</div>{% endif %}</div>
+        </div>
+        {% endfor %}
+    </div>
+    {% endif %}
+
+    <p class="mt-4 flex justify-between text-sm">
+        <a href="https://results.gpsaswimming.org/{{ year }}/" target="_blank" rel="noopener" class="text-gpsa-blue-light hover:text-gpsa-red font-medium">View full results archive</a>
+        <a href="https://www.gpsaswimming.org/meet-schedule#top" target="_parent" class="text-gpsa-blue-light hover:text-gpsa-red font-medium">Back to top</a>
+    </p>
 </div>
 
 <script>
 (function () {
-	var SCORES_URL = "https://results.gpsaswimming.org/{{ year }}/scores.json";
-	var table = document.getElementById("meet_schedule");
-	if (!table) return;
+    var SCORES_URL = "https://results.gpsaswimming.org/{{ year }}/scores.json";
+    var tabs = Array.prototype.slice.call(document.querySelectorAll(".tab-btn"));
+    var panels = Array.prototype.slice.call(document.querySelectorAll("[data-panel]"));
+    var validTabs = panels.map(function (p) { return p.dataset.panel; });
 
-	// --- Click a team name to highlight all of that team's rows on this page ---
-	var activeTeam = null;
-	function applyHighlight() {
-		var rows = table.querySelectorAll("tr[data-home]");
-		for (var i = 0; i < rows.length; i++) {
-			var tr = rows[i];
-			var match = activeTeam &&
-				(tr.dataset.home === activeTeam || tr.dataset.visitor === activeTeam);
-			tr.classList.toggle("team-active", !!match);
-		}
-	}
-	table.addEventListener("click", function (e) {
-		var cell = e.target.closest(".team-cell");
-		if (!cell) return;
-		var team = cell.dataset.team;
-		activeTeam = (activeTeam === team) ? null : team;
-		applyHighlight();
-	});
+    function resize() { if (window.parentIFrame) { window.parentIFrame.size(); } }
 
-	// --- Fetch final scores and fill them in ---
-	function key(date, a, b) {
-		return date + "::" + [a, b].sort().join("|");
-	}
-	fetch(SCORES_URL)
-		.then(function (r) { return r.ok ? r.json() : Promise.reject(); })
-		.then(function (data) {
-			var map = {};
-			data.forEach(function (m) {
-				map[key(m.date, m.home_name, m.away_name)] = m;
-			});
-			var rows = table.querySelectorAll("tr[data-home]");
-			for (var i = 0; i < rows.length; i++) {
-				var tr = rows[i];
-				var m = map[key(tr.dataset.date, tr.dataset.home, tr.dataset.visitor)];
-				if (!m) continue;
+    function activate(tab) {
+        if (validTabs.indexOf(tab) === -1) { tab = "all"; }
+        tabs.forEach(function (b) { b.classList.toggle("tab-active", b.dataset.tab === tab); });
+        panels.forEach(function (p) { p.classList.toggle("panel-active", p.dataset.panel === tab); });
+        resize();
+    }
 
-				// Match scores by name, so a flipped home/away orientation still works.
-				var homeIsHome = (m.home_name === tr.dataset.home);
-				var homeScore = homeIsHome ? m.home_score : m.away_score;
-				var awayScore = homeIsHome ? m.away_score : m.home_score;
+    tabs.forEach(function (b) {
+        b.addEventListener("click", function () {
+            var tab = b.dataset.tab;
+            activate(tab);  // switch first — never let a hash-update failure block navigation
+            try { history.replaceState(null, "", "#" + tab); } catch (e) { /* ignore */ }
+        });
+    });
 
-				var homeCell = tr.querySelector(".score-home");
-				var awayCell = tr.querySelector(".score-away");
-				homeCell.textContent = String(homeScore);
-				awayCell.textContent = String(awayScore);
+    // Initial tab from URL hash (e.g. schedule.html#blue), default "all"
+    activate((location.hash || "#all").slice(1));
 
-				if (homeScore > awayScore) {
-					homeCell.classList.add("winner");
-					awayCell.classList.add("loser");
-				} else if (awayScore > homeScore) {
-					awayCell.classList.add("winner");
-					homeCell.classList.add("loser");
-				}
+    // --- Team filter (All Divisions panel) ---
+    var filter = document.getElementById("team-filter");
+    var allPanel = document.querySelector('[data-panel="all"]');
+    if (filter && allPanel) {
+        filter.addEventListener("change", function () {
+            var team = filter.value;
+            allPanel.querySelectorAll(".date-group").forEach(function (group) {
+                var anyVisible = false;
+                group.querySelectorAll("[data-meet]").forEach(function (row) {
+                    var show = !team || row.dataset.home === team || row.dataset.visitor === team;
+                    row.style.display = show ? "" : "none";
+                    if (show) { anyVisible = true; }
+                });
+                group.style.display = anyVisible ? "" : "none";
+            });
+            resize();
+        });
+    }
 
-				var res = tr.querySelector(".results-cell");
-				var a = document.createElement("a");
-				a.href = m.url;
-				a.target = "_blank";
-				a.rel = "noopener";
-				a.textContent = "Results";
-				res.appendChild(a);
-			}
-		})
-		.catch(function () { /* no scores yet, or fetch blocked — leave cells blank */ });
+    // --- Click a team name to highlight its rows (across all panels) ---
+    var activeTeam = null;
+    document.addEventListener("click", function (e) {
+        var cell = e.target.closest(".team-cell");
+        if (!cell) { return; }
+        var team = cell.dataset.team;
+        activeTeam = (activeTeam === team) ? null : team;
+        document.querySelectorAll("[data-meet]").forEach(function (row) {
+            var match = activeTeam && (row.dataset.home === activeTeam || row.dataset.visitor === activeTeam);
+            row.classList.toggle("team-active", !!match);
+        });
+    });
+
+    // --- Fill in final scores + result links from the results site ---
+    function key(date, a, b) { return date + "::" + [a, b].sort().join("|"); }
+    fetch(SCORES_URL)
+        .then(function (r) { return r.ok ? r.json() : Promise.reject(); })
+        .then(function (data) {
+            var map = {};
+            data.forEach(function (m) { map[key(m.date, m.home_name, m.away_name)] = m; });
+            document.querySelectorAll("[data-meet]").forEach(function (row) {
+                var m = map[key(row.dataset.date, row.dataset.home, row.dataset.visitor)];
+                if (!m) { return; }
+                var homeIsHome = (m.home_name === row.dataset.home);
+                var homeScore = homeIsHome ? m.home_score : m.away_score;
+                var awayScore = homeIsHome ? m.away_score : m.home_score;
+
+                var homeCell = row.querySelector(".score-home");
+                var awayCell = row.querySelector(".score-away");
+                homeCell.textContent = String(homeScore);
+                awayCell.textContent = String(awayScore);
+                if (homeScore > awayScore) { homeCell.classList.add("winner"); awayCell.classList.add("loser"); }
+                else if (awayScore > homeScore) { awayCell.classList.add("winner"); homeCell.classList.add("loser"); }
+
+                var a = document.createElement("a");
+                a.href = m.url; a.target = "_blank"; a.rel = "noopener"; a.textContent = "Results";
+                row.querySelector(".results-cell").appendChild(a);
+            });
+            resize();
+        })
+        .catch(function () { /* no feed yet, or blocked — leave scores blank */ });
 })();
 </script>
 </body>

@@ -76,6 +76,33 @@ No build-time coupling — `build.py` needs no access to the results repo; the j
 happens client-side in the browser. CORS is permitted by a `_headers` file in
 `web-results` scoped to this site's origin.
 
+## Consolidated tabbed schedule (transition in progress)
+
+`schedule.html` is a new **single page** that replaces the separate header +
+Red/White/Blue + Invitationals iframes with one tabbed view:
+**All Divisions** (default) · Red · White · Blue · Invitationals. It uses Tailwind
+(matching the results-archive pages), shows a **desktop table / mobile cards**, fills
+in each meet's score + result link from the scores feed, supports a **team filter**
+(current-season teams only) on the All Divisions tab, and lets you **click a team name**
+to highlight its rows. Tabs are deep-linkable: `schedule.html#blue` opens the Blue tab.
+
+**This is a non-breaking, additive rollout.** `build.py` currently emits BOTH the new
+`schedule.html` AND the legacy `header.html` / `schedule-{red,white,blue}.html` /
+`invitationals.html` files, so the live SwimTopia embed keeps working until you cut over.
+
+### Cutover steps (do these together, when ready)
+
+1. Preview the new page at `https://meet-schedule.gpsaswimming.org/schedule.html`.
+2. In SwimTopia, replace the main embed block with
+   `snippets/swimtopia-embed-consolidated.html` (one schedule iframe; Rosters + Teams
+   embeds unchanged).
+3. Repoint the Rosters grid's division-header links in `templates/divisions.html.j2`
+   from `meet-schedule#red`/`#white`/`#blue` to `meet-schedule#schedule` (per-division
+   deep-link from the rosters grid is replaced by the in-page tabs).
+4. Remove the legacy outputs: delete the `# Legacy outputs (TRANSITIONAL)` block in
+   `build.py` and the `templates/_legacy_schedule.html.j2` + `templates/header.html.j2`
+   templates.
+
 ## Build & deploy
 
 Local build:
