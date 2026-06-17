@@ -7,6 +7,15 @@
     <script src="https://cdn.jsdelivr.net/npm/iframe-resizer@4/js/iframeResizer.contentWindow.min.js"></script>
     <link rel="stylesheet" href="https://css.gpsaswimming.org/gpsa-swimtopia-iframe.css">
     <link rel="stylesheet" href="https://css.gpsaswimming.org/gpsa-main.css">
+    <style>
+        /* Scores are filled in client-side from the results site (see script below). */
+        #meet_schedule td.score-cell { text-align: center; }
+        #meet_schedule td.winner { font-weight: 700; color: #002366; }   /* GPSA navy */
+        #meet_schedule td.loser { color: #6b7280; }                       /* muted gray */
+        #meet_schedule td.team-cell { cursor: pointer; }
+        #meet_schedule tr.team-active > td { background: rgba(0, 35, 102, 0.08); }
+        #meet_schedule .results-cell a { white-space: nowrap; }
+    </style>
 </head>
 <body>
 <div>
@@ -14,18 +23,24 @@
 <table id="meet_schedule">
 <tbody>
 <tr>
-	<th style="width:33%">DATE</th>
-	<th style="width:33%">HOME</th>
-	<th style="width:34%">VISITOR</th>
+	<th style="width:20%">DATE</th>
+	<th style="width:20%">HOME</th>
+	<th style="width:10%">SCORE</th>
+	<th style="width:20%">VISITOR</th>
+	<th style="width:10%">SCORE</th>
+	<th style="width:20%">RESULTS</th>
 </tr>
 {% for group in date_groups %}
 {% for meet in group.meets %}
-<tr>
+<tr data-date="{{ meet.iso_date }}" data-home="{{ meet.home }}" data-visitor="{{ meet.visitor }}">
 {% if loop.first %}
 	<td rowspan="{{ group.meets|length }}">{{ group.date }}</td>
 {% endif %}
-	<td>{{ meet.home }}</td>
-	<td>{{ meet.visitor }}</td>
+	<td class="team-cell" data-team="{{ meet.home }}">{{ meet.home }}</td>
+	<td class="score-cell score-home"></td>
+	<td class="team-cell" data-team="{{ meet.visitor }}">{{ meet.visitor }}</td>
+	<td class="score-cell score-away"></td>
+	<td class="results-cell"></td>
 </tr>
 {% endfor %}
 {% endfor %}
@@ -33,5 +48,78 @@
 </table>
 <p style="margin-top: 1em; display: flex; justify-content: space-between;"><a href="https://results.gpsaswimming.org/{{ year }}/#{{ division }}" target="_blank">View Meet Results</a><a href="https://www.gpsaswimming.org/meet-schedule#top" target="_parent">Back to top of page</a></p>
 </div>
+
+<script>
+(function () {
+	var SCORES_URL = "https://results.gpsaswimming.org/{{ year }}/scores.json";
+	var table = document.getElementById("meet_schedule");
+	if (!table) return;
+
+	// --- Click a team name to highlight all of that team's rows on this page ---
+	var activeTeam = null;
+	function applyHighlight() {
+		var rows = table.querySelectorAll("tr[data-home]");
+		for (var i = 0; i < rows.length; i++) {
+			var tr = rows[i];
+			var match = activeTeam &&
+				(tr.dataset.home === activeTeam || tr.dataset.visitor === activeTeam);
+			tr.classList.toggle("team-active", !!match);
+		}
+	}
+	table.addEventListener("click", function (e) {
+		var cell = e.target.closest(".team-cell");
+		if (!cell) return;
+		var team = cell.dataset.team;
+		activeTeam = (activeTeam === team) ? null : team;
+		applyHighlight();
+	});
+
+	// --- Fetch final scores and fill them in ---
+	function key(date, a, b) {
+		return date + "::" + [a, b].sort().join("|");
+	}
+	fetch(SCORES_URL)
+		.then(function (r) { return r.ok ? r.json() : Promise.reject(); })
+		.then(function (data) {
+			var map = {};
+			data.forEach(function (m) {
+				map[key(m.date, m.home_name, m.away_name)] = m;
+			});
+			var rows = table.querySelectorAll("tr[data-home]");
+			for (var i = 0; i < rows.length; i++) {
+				var tr = rows[i];
+				var m = map[key(tr.dataset.date, tr.dataset.home, tr.dataset.visitor)];
+				if (!m) continue;
+
+				// Match scores by name, so a flipped home/away orientation still works.
+				var homeIsHome = (m.home_name === tr.dataset.home);
+				var homeScore = homeIsHome ? m.home_score : m.away_score;
+				var awayScore = homeIsHome ? m.away_score : m.home_score;
+
+				var homeCell = tr.querySelector(".score-home");
+				var awayCell = tr.querySelector(".score-away");
+				homeCell.textContent = String(homeScore);
+				awayCell.textContent = String(awayScore);
+
+				if (homeScore > awayScore) {
+					homeCell.classList.add("winner");
+					awayCell.classList.add("loser");
+				} else if (awayScore > homeScore) {
+					awayCell.classList.add("winner");
+					homeCell.classList.add("loser");
+				}
+
+				var res = tr.querySelector(".results-cell");
+				var a = document.createElement("a");
+				a.href = m.url;
+				a.target = "_blank";
+				a.rel = "noopener";
+				a.textContent = "Results";
+				res.appendChild(a);
+			}
+		})
+		.catch(function () { /* no scores yet, or fetch blocked — leave cells blank */ });
+})();
+</script>
 </body>
 </html>

@@ -54,6 +54,28 @@ Each template pulls shared styling from the CSS CDN
 (`css.gpsaswimming.org`) and loads the iframe-resizer content-window script so the
 embedding page can auto-size each frame.
 
+## Live scores on the schedule
+
+The division schedule tables show each dual meet's final **score** and a **link to
+the results**, fetched live from the results site. This is a cross-repo integration:
+
+- **Source of data:** the `web-results` repo publishes a per-season feed at
+  `https://results.gpsaswimming.org/<year>/scores.json` (one record per swum meet:
+  date, team display names, scores, and the result-page URL).
+- **How it's joined:** `schedule.html.j2` stamps each meet row with
+  `data-date` / `data-home` / `data-visitor`, then a small inline script fetches the
+  feed and matches on `date` + the (unordered) pair of **display names**. Scores are
+  placed by name, so a flipped home/away orientation still renders correctly. The
+  winner's score is bold + GPSA navy, the loser's muted gray.
+- **Click a team name** to highlight all of that team's rows on the page (toggle off
+  by clicking again).
+- Meets with no entry in the feed (not yet swum) simply render blank score/result
+  cells; a missing or unreachable feed fails silently, so the schedule always renders.
+
+No build-time coupling — `build.py` needs no access to the results repo; the join
+happens client-side in the browser. CORS is permitted by a `_headers` file in
+`web-results` scoped to this site's origin.
+
 ## Build & deploy
 
 Local build:

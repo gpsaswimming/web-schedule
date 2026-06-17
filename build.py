@@ -109,6 +109,8 @@ def load_division_csv(path):
             meets_by_date.setdefault(dt, []).append({
                 "home": team_name(row["HomeTeam"]),
                 "visitor": team_name(row["VisitingTeam"]),
+                # ISO date is the join key for the client-side scores feed (see schedule.html.j2)
+                "iso_date": dt.strftime("%Y-%m-%d"),
             })
 
     return [
