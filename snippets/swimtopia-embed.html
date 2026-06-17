@@ -1,3 +1,10 @@
+<!--
+  GPSA Meet Schedule — SwimTopia embed (source of truth; paste into the SwimTopia
+  Meet Schedule page editor). One tabbed schedule.html (All / Red / White / Blue /
+  Invitationals) plus the Rosters grid. The Teams quick-access list is embedded
+  separately via snippets/teams-snippet.html.
+-->
+
 <!-- iframe-resizer (load once) -->
 <script src="https://cdnjs.cloudflare.com/ajax/libs/iframe-resizer/4.3.9/iframeResizer.min.js"></script>
 
@@ -10,48 +17,13 @@
     id="gpsa-divisions">
 </iframe>
 
-<!-- MEET SCHEDULES HEADER -->
+<!-- MEET SCHEDULE (tabbed: All Divisions / Red / White / Blue / Invitationals) -->
+<div id="schedule"></div>
 <iframe
-    src="https://meet-schedule.gpsaswimming.org/header.html"
+    src="https://meet-schedule.gpsaswimming.org/schedule.html"
     style="width: 100%; border: none; overflow: hidden;"
     scrolling="no"
-    id="gpsa-header">
-</iframe>
-
-<!-- RED DIVISION SCHEDULE -->
-<div id="red"></div>
-<iframe
-    src="https://meet-schedule.gpsaswimming.org/schedule-red.html"
-    style="width: 100%; border: none; overflow: hidden;"
-    scrolling="no"
-    id="gpsa-schedule-red">
-</iframe>
-
-<!-- WHITE DIVISION SCHEDULE -->
-<div id="white"></div>
-<iframe
-    src="https://meet-schedule.gpsaswimming.org/schedule-white.html"
-    style="width: 100%; border: none; overflow: hidden;"
-    scrolling="no"
-    id="gpsa-schedule-white">
-</iframe>
-
-<!-- BLUE DIVISION SCHEDULE -->
-<div id="blue"></div>
-<iframe
-    src="https://meet-schedule.gpsaswimming.org/schedule-blue.html"
-    style="width: 100%; border: none; overflow: hidden;"
-    scrolling="no"
-    id="gpsa-schedule-blue">
-</iframe>
-
-<!-- INVITATIONALS -->
-<div id="invitationals"></div>
-<iframe
-    src="https://meet-schedule.gpsaswimming.org/invitationals.html"
-    style="width: 100%; border: none; overflow: hidden;"
-    scrolling="no"
-    id="gpsa-invitationals">
+    id="gpsa-schedule">
 </iframe>
 
 <!-- Initialize all iframes -->

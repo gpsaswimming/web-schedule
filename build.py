@@ -231,33 +231,6 @@ def build():
     print(f"  Built schedule.html ({len(all_meets)} meets, {len(division_schedules)} divisions, "
           f"{len(events)} invitationals, {len(teams)} teams)")
 
-    # --- Legacy outputs (TRANSITIONAL) ---------------------------------------
-    # The live SwimTopia page still embeds header.html, schedule-{div}.html and
-    # invitationals.html as separate iframes. Keep emitting them so production
-    # does not break before the embed is switched to the single schedule.html.
-    # Remove this block (and the _legacy_schedule.html.j2 + header.html.j2
-    # templates) once SwimTopia points at schedule.html.
-    legacy_schedule_template = env.get_template("_legacy_schedule.html.j2")
-    for ds in division_schedules:
-        output = legacy_schedule_template.render(
-            division=ds["key"],
-            division_title=ds["title"],
-            date_groups=ds["date_groups"],
-            year=year,
-        )
-        (dist / f"schedule-{ds['key']}.html").write_text(output)
-        print(f"  Built schedule-{ds['key']}.html (legacy)")
-
-    if events:
-        inv_template = env.get_template("invitationals.html.j2")
-        (dist / "invitationals.html").write_text(inv_template.render(events=events, year=year))
-        print("  Built invitationals.html (legacy)")
-
-    header_template = env.get_template("header.html.j2")
-    (dist / "header.html").write_text(header_template.render(year=year))
-    print("  Built header.html (legacy)")
-    # -------------------------------------------------------------------------
-
     # Build divisions (rosters) page from CSV-derived teams
     if division_rosters:
         divisions_template = env.get_template("divisions.html.j2")

@@ -21,7 +21,7 @@
         body { font-family: 'Inter', sans-serif; color: #1f2937; }
 
         /* --- Tabs (segmented control) --- */
-        .tab-bar { display: flex; flex-wrap: wrap; gap: .25rem; background: #f3f4f6; padding: .25rem; border-radius: 1rem; }
+        .tab-bar { display: flex; flex-wrap: wrap; gap: .25rem; background: #f3f4f6; padding: .25rem; border-radius: 1rem; width: fit-content; max-width: 100%; }
         .tab-btn { padding: .4rem .9rem; font-weight: 600; font-size: .875rem; color: #374151; border: none; background: transparent; border-radius: .75rem; cursor: pointer; white-space: nowrap; }
         .tab-btn:hover { background: #e5e9f0; }
         .tab-btn.tab-active { background: var(--gpsa-blue); color: #fff; }
@@ -93,7 +93,7 @@
 {%- endmacro %}
 
 <div class="max-w-4xl mx-auto px-3 py-4">
-    <h2 class="text-xl sm:text-2xl font-bold text-gpsa-blue mb-3">{{ year }} Meet Schedule</h2>
+    <h2 class="text-xl sm:text-2xl font-bold text-gpsa-red mb-3">{{ year }} Meet Schedule</h2>
 
     <div class="tab-bar mb-3" role="tablist">
         <button class="tab-btn" data-tab="all" type="button">All Divisions</button>

@@ -18,10 +18,11 @@ data/*.csv  ──►  build.py  ──►  dist/*.html  ──►  Cloudflare P
 `build.py` is the entry point. It:
 
 1. Detects the season **year** from the first date in any CSV.
-2. Reads each division schedule CSV and renders a per-division schedule page.
+2. Reads the division schedule CSVs and renders the single tabbed `schedule.html`
+   (All Divisions / Red / White / Blue / Invitationals).
 3. Derives the division **rosters** automatically from the teams appearing in the
    schedule CSVs (no separate roster list to maintain).
-4. Renders the rosters, teams, header, and invitationals pages.
+4. Renders the rosters and teams quick-access pages.
 5. Writes everything to `dist/` (git-ignored; rebuilt on each deploy).
 
 Team display names and roster-link slugs live in the `TEAM_MAP` dictionary at the
@@ -44,10 +45,8 @@ changes. Aliased abbreviations (e.g. `BLMAR`/`BLMR`) are deduplicated by name.
 
 | Template | Output | Embedded as |
 |---|---|---|
+| `schedule.html.j2` | `schedule.html` | Tabbed schedule: All Divisions / Red / White / Blue / Invitationals (with live scores + result links) |
 | `divisions.html.j2` | `divisions.html` | Rosters grid (Red/White/Blue + Roster Formatting Tool link) |
-| `header.html.j2` | `header.html` | "{year} Meet Schedules" heading |
-| `schedule.html.j2` | `schedule-{red,white,blue}.html` | Per-division dual-meet schedule tables |
-| `invitationals.html.j2` | `invitationals.html` | League-wide invitationals list |
 | `teams.html.j2` | `teams.html` | Teams quick-access anchors |
 
 Each template pulls shared styling from the CSS CDN
@@ -76,32 +75,15 @@ No build-time coupling — `build.py` needs no access to the results repo; the j
 happens client-side in the browser. CORS is permitted by a `_headers` file in
 `web-results` scoped to this site's origin.
 
-## Consolidated tabbed schedule (transition in progress)
+## The tabbed schedule page
 
-`schedule.html` is a new **single page** that replaces the separate header +
-Red/White/Blue + Invitationals iframes with one tabbed view:
+`schedule.html` is a **single page** with a tabbed view:
 **All Divisions** (default) · Red · White · Blue · Invitationals. It uses Tailwind
-(matching the results-archive pages), shows a **desktop table / mobile cards**, fills
-in each meet's score + result link from the scores feed, supports a **team filter**
-(current-season teams only) on the All Divisions tab, and lets you **click a team name**
-to highlight its rows. Tabs are deep-linkable: `schedule.html#blue` opens the Blue tab.
-
-**This is a non-breaking, additive rollout.** `build.py` currently emits BOTH the new
-`schedule.html` AND the legacy `header.html` / `schedule-{red,white,blue}.html` /
-`invitationals.html` files, so the live SwimTopia embed keeps working until you cut over.
-
-### Cutover steps (do these together, when ready)
-
-1. Preview the new page at `https://meet-schedule.gpsaswimming.org/schedule.html`.
-2. In SwimTopia, replace the main embed block with
-   `snippets/swimtopia-embed-consolidated.html` (one schedule iframe; Rosters + Teams
-   embeds unchanged).
-3. Repoint the Rosters grid's division-header links in `templates/divisions.html.j2`
-   from `meet-schedule#red`/`#white`/`#blue` to `meet-schedule#schedule` (per-division
-   deep-link from the rosters grid is replaced by the in-page tabs).
-4. Remove the legacy outputs: delete the `# Legacy outputs (TRANSITIONAL)` block in
-   `build.py` and the `templates/_legacy_schedule.html.j2` + `templates/header.html.j2`
-   templates.
+(matching the results-archive pages), renders a **desktop table / mobile cards**, fills
+in each meet's score + result link from the scores feed (see above), offers a
+**team filter** (current-season teams only) on the All Divisions tab, and lets you
+**click a team name** to highlight its rows. Tabs are deep-linkable:
+`schedule.html#blue` opens the Blue tab.
 
 ## Build & deploy
 
@@ -129,8 +111,9 @@ CSV exports in `data/`, commit, and push.
 The published pages are surfaced on the SwimTopia Meet Schedule page via iframes.
 This block lives in SwimTopia's page HTML (not in this repo's build output) — it is
 kept here in `snippets/swimtopia-embed.html` as the source of truth. Paste it into
-the SwimTopia content editor. The `<div>` anchors (`#top`, `#red`, `#white`,
-`#blue`, `#invitationals`) are the targets for the in-page jump links.
+the SwimTopia content editor. The `<div>` anchors (`#top`, `#schedule`) are the targets
+for the in-page jump links; the per-division navigation is handled by the tabs inside
+`schedule.html` (deep-linkable as `schedule.html#red` etc.).
 
 ```html
 <!-- iframe-resizer (load once) -->
@@ -145,48 +128,13 @@ the SwimTopia content editor. The `<div>` anchors (`#top`, `#red`, `#white`,
     id="gpsa-divisions">
 </iframe>
 
-<!-- MEET SCHEDULES HEADER -->
+<!-- MEET SCHEDULE (tabbed: All Divisions / Red / White / Blue / Invitationals) -->
+<div id="schedule"></div>
 <iframe
-    src="https://meet-schedule.gpsaswimming.org/header.html"
+    src="https://meet-schedule.gpsaswimming.org/schedule.html"
     style="width: 100%; border: none; overflow: hidden;"
     scrolling="no"
-    id="gpsa-header">
-</iframe>
-
-<!-- RED DIVISION SCHEDULE -->
-<div id="red"></div>
-<iframe
-    src="https://meet-schedule.gpsaswimming.org/schedule-red.html"
-    style="width: 100%; border: none; overflow: hidden;"
-    scrolling="no"
-    id="gpsa-schedule-red">
-</iframe>
-
-<!-- WHITE DIVISION SCHEDULE -->
-<div id="white"></div>
-<iframe
-    src="https://meet-schedule.gpsaswimming.org/schedule-white.html"
-    style="width: 100%; border: none; overflow: hidden;"
-    scrolling="no"
-    id="gpsa-schedule-white">
-</iframe>
-
-<!-- BLUE DIVISION SCHEDULE -->
-<div id="blue"></div>
-<iframe
-    src="https://meet-schedule.gpsaswimming.org/schedule-blue.html"
-    style="width: 100%; border: none; overflow: hidden;"
-    scrolling="no"
-    id="gpsa-schedule-blue">
-</iframe>
-
-<!-- INVITATIONALS -->
-<div id="invitationals"></div>
-<iframe
-    src="https://meet-schedule.gpsaswimming.org/invitationals.html"
-    style="width: 100%; border: none; overflow: hidden;"
-    scrolling="no"
-    id="gpsa-invitationals">
+    id="gpsa-schedule">
 </iframe>
 
 <!-- Initialize all iframes -->
