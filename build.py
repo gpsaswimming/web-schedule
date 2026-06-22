@@ -45,6 +45,7 @@ TEAM_MAP = {
     "WPPIR": {"name": "Windy Point",    "roster": "roster-windy-point-piranhas",                  "anchor": "Windy_Point"},
     "WYCC":  {"name": "Warwick Yacht",  "roster": "roster-warwick-yacht-sea-turtles",             "anchor": "Warwick_Yacht"},
     "WYTHE": {"name": "Wythe",          "roster": "roster-wythe-wahoos",                          "anchor": "Wythe"},
+    "WYTH":  {"name": "Wythe",          "roster": "roster-wythe-wahoos",                          "anchor": "Wythe"},
 }
 
 ROSTER_BASE_URL = "https://www.gpsaswimming.org"
