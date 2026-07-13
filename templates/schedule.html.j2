@@ -53,6 +53,8 @@
         .score { font-variant-numeric: tabular-nums; color: #9ca3af; white-space: nowrap; }
         .score.winner { font-weight: 700; color: var(--gpsa-blue); }
         .score.loser { color: #6b7280; }
+        /* A tied dual meet: both scores read as a deliberate even result. */
+        .score.tie { font-weight: 700; color: var(--gpsa-blue); }
         .results-cell a { color: var(--gpsa-red); font-weight: 600; font-size: .85rem; text-decoration: none; }
         .results-cell a:hover { text-decoration: underline; }
         .meet-row.team-active { background: rgba(0, 35, 102, .07); border-color: #c7d2e8; }
@@ -246,6 +248,7 @@
                 awayCell.textContent = String(awayScore);
                 if (homeScore > awayScore) { homeCell.classList.add("winner"); awayCell.classList.add("loser"); }
                 else if (awayScore > homeScore) { awayCell.classList.add("winner"); homeCell.classList.add("loser"); }
+                else { homeCell.classList.add("tie"); awayCell.classList.add("tie"); }
 
                 var a = document.createElement("a");
                 a.href = m.url; a.target = "_blank"; a.rel = "noopener"; a.textContent = "Results";
