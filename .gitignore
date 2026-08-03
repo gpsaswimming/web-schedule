@@ -3,3 +3,17 @@ dist/
 __pycache__/
 *.pyc
 .DS_Store
+
+# Raw meet files — these carry minors' birthdates and must never reach a public
+# repo. This repo has no reason to hold one today, but it becomes a write target
+# for the ingestion app layer: on a schedule mismatch the submitter can confirm a
+# meet was rescheduled, and the corrected date is pushed back here. Deny by
+# default so a path bug in that write cannot land a results file.
+*.sd3
+*.SD3
+*.hy3
+*.HY3
+*.cl2
+*.CL2
+*.zip
+*.ZIP
