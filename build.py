@@ -14,8 +14,9 @@ Run: python build.py
 """
 
 import csv
+import json
 import shutil
-from datetime import datetime
+from datetime import datetime, timezone
 from pathlib import Path
 
 import jinja2
@@ -156,6 +157,128 @@ def load_invitationals_csv(path):
     return events
 
 
+# SwimTopia uses these two placeholders in the Home/Visiting columns for a
+# league-wide invitational; the real field is in the Team3..TeamN columns. They
+# are not teams and must never reach the feed as though they were.
+NOT_A_TEAM = {"GPSA", "LEAGUE"}
+
+
+def meet_teams(row):
+    """Every team code in a schedule row, in file order, without duplicates.
+
+    Codes are taken VERBATIM. See build_schedule_feed for why they are not
+    canonicalised here.
+    """
+    columns = ["HomeTeam", "VisitingTeam"] + [f"Team{i}" for i in range(3, 22)]
+    codes = []
+    for col in columns:
+        code = (row.get(col) or "").strip()
+        if code and code not in NOT_A_TEAM and code not in codes:
+            codes.append(code)
+    return codes
+
+
+def load_schedule_feed_meets(data_dir):
+    """Every scheduled meet as feed records: duals by division, then invitationals."""
+    meets = []
+
+    for division in DIVISIONS:
+        path = data_dir / f"{division}.csv"
+        if not path.exists():
+            continue
+        with open(path, newline="") as f:
+            for row in csv.DictReader(f):
+                dt = parse_date(row["MeetDate"])
+                meets.append({
+                    "date": dt.strftime("%Y-%m-%d"),
+                    "type": "dual",
+                    "division": division,
+                    "teams": meet_teams(row),
+                    "start": parse_start(row.get("MeetStart")),
+                    "name": (row.get("MeetName") or "").strip() or None,
+                    "location": (row.get("Location") or "").strip() or None,
+                    "sort_key": dt,
+                })
+
+    inv_path = data_dir / "invitationals.csv"
+    if inv_path.exists():
+        with open(inv_path, newline="") as f:
+            for row in csv.DictReader(f):
+                dt = parse_date(row["MeetDate"])
+                meets.append({
+                    "date": dt.strftime("%Y-%m-%d"),
+                    "type": "invitational",
+                    "division": None,
+                    "teams": meet_teams(row),
+                    "start": parse_start(row.get("MeetStart")),
+                    "name": (row.get("MeetName") or "").strip() or None,
+                    "location": (row.get("Location") or "").strip() or None,
+                    "sort_key": dt,
+                })
+
+    meets.sort(key=lambda m: (m["sort_key"], m["type"], m["teams"]))
+    for m in meets:
+        del m["sort_key"]
+    return meets
+
+
+def parse_start(value):
+    """SwimTopia's '6:00 PM' as 24-hour 'HH:MM', or None if absent/unparseable."""
+    raw = (value or "").strip()
+    if not raw:
+        return None
+    try:
+        return datetime.strptime(raw, "%I:%M %p").strftime("%H:%M")
+    except ValueError:
+        return None
+
+
+def build_schedule_feed(data_dir, year, dist):
+    """Write dist/schedule.json — the machine-readable schedule.
+
+    WHY THIS EXISTS. The results on-ramp answers "which meet is this?" from the
+    file plus the schedule: a date and team set present here is a dual or an
+    invitational, and one that is ABSENT is a friendship meet (2+ teams) or a
+    time trial (1 team). That single lookup is also the publish decision, since
+    the last two are never published. The Rules Committee portal reads it to
+    name the meet an adjustment applies to.
+
+    TEAM CODES ARE VERBATIM AND UNCANONICALISED. SwimTopia's codes drift —
+    Wythe's re-brand still exports WYTHE where the league registry says WYTH —
+    and the canonical mapping lives in gpsa-league, which is JavaScript. Copying
+    that alias table into this file would create exactly the second definition
+    the portfolio has been consolidating away, and it would drift silently
+    because nothing would compare the two. So consumers run
+    `canonicalCode()` themselves; the feed's job is to report what the schedule
+    says, not to decide what it means.
+
+    What this DOES enforce is that every code is one the site already knows.
+    An unrecognised code means the league added or re-branded a team and this
+    build has not been told, which is a deploy-time failure rather than a
+    mystery in a consumer three repositories away.
+    """
+    meets = load_schedule_feed_meets(data_dir)
+
+    unknown = sorted({c for m in meets for c in m["teams"] if c not in TEAM_MAP})
+    if unknown:
+        raise SystemExit(
+            f"schedule.json: team code(s) not in TEAM_MAP: {', '.join(unknown)}.\n"
+            "Add them there (with the display name and roster slug) before deploying — "
+            "an unmapped code reaches the feed as an unresolvable team."
+        )
+
+    feed = {
+        "season": year,
+        "generated_at": datetime.now(timezone.utc).strftime("%Y-%m-%dT%H:%M:%SZ"),
+        "source": "web-schedule/data/*.csv",
+        "meets": meets,
+    }
+    (dist / "schedule.json").write_text(json.dumps(feed, indent=2) + "\n")
+
+    duals = sum(1 for m in meets if m["type"] == "dual")
+    print(f"  Built schedule.json ({duals} duals, {len(meets) - duals} invitationals, season {year})")
+
+
 def detect_year(data_dir):
     """Detect season year from the first date found in any CSV."""
     for path in sorted(data_dir.glob("*.csv")):
@@ -253,6 +376,15 @@ def build():
         out_path = dist / "teams.html"
         out_path.write_text(output)
         print(f"  Built {out_path.name}")
+
+    # The machine-readable schedule, for the results on-ramp and the Rules
+    # Committee portal. Built from the same CSVs the pages are, so the feed and
+    # the site can never disagree about what is scheduled.
+    build_schedule_feed(data_dir, year, dist)
+
+    # Cloudflare Pages headers — CORS for the feed above.
+    if Path("_headers").exists():
+        shutil.copy2("_headers", dist / "_headers")
 
     # Copy CNAME if present
     if Path("CNAME").exists():

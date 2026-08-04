@@ -23,7 +23,8 @@ data/*.csv  ──►  build.py  ──►  dist/*.html  ──►  Cloudflare P
 3. Derives the division **rosters** automatically from the teams appearing in the
    schedule CSVs (no separate roster list to maintain).
 4. Renders the rosters and teams quick-access pages.
-5. Writes everything to `dist/` (git-ignored; rebuilt on each deploy).
+5. Writes `schedule.json`, the machine-readable feed (see below).
+6. Writes everything to `dist/` (git-ignored; rebuilt on each deploy).
 
 Team display names and roster-link slugs live in the `TEAM_MAP` dictionary at the
 top of `build.py` — update it there when a team's name or SwimTopia roster URL
@@ -37,6 +38,7 @@ changes. Aliased abbreviations (e.g. `BLMAR`/`BLMR`) are deduplicated by name.
 | `data/` | SwimTopia CSV exports: `red.csv`, `white.csv`, `blue.csv`, `invitationals.csv`. |
 | `templates/` | Jinja2 templates, one per output page (see below). |
 | `snippets/` | The iframe embed code pasted into SwimTopia (see below). |
+| `_headers` | Cloudflare Pages response headers — CORS and caching for `schedule.json`. |
 | `legacy/` | Prior/reference material, not part of the build. |
 | `dist/` | Build output (git-ignored). |
 | `.github/workflows/` | CI: builds and deploys to Cloudflare Pages on push to `main`. |
@@ -52,6 +54,53 @@ changes. Aliased abbreviations (e.g. `BLMAR`/`BLMR`) are deduplicated by name.
 Each template pulls shared styling from the CSS CDN
 (`css.gpsaswimming.org`) and loads the iframe-resizer content-window script so the
 embedding page can auto-size each frame.
+
+## `schedule.json` — the machine-readable schedule
+
+`meet-schedule.gpsaswimming.org/schedule.json`, rebuilt from the same CSVs the
+pages are, so the feed and the site cannot disagree about what is scheduled.
+
+```json
+{
+  "season": 2026,
+  "generated_at": "2026-08-04T16:51:07Z",
+  "source": "web-schedule/data/*.csv",
+  "meets": [
+    {
+      "date": "2026-06-15",
+      "type": "dual",
+      "division": "white",
+      "teams": ["GG", "HW"],
+      "start": "18:00",
+      "name": null,
+      "location": null
+    }
+  ]
+}
+```
+
+**Why it exists.** The results on-ramp answers *"which meet is this?"* from the
+meet file plus this feed. A date and team set present here is a dual or an
+invitational; one that is **absent** is a friendship meet (2+ teams) or a time
+trial (1 team). That single lookup is also the publish decision, since the last
+two are never published. The Rules Committee portal reads it to name the meet an
+adjustment applies to.
+
+**Team codes are verbatim and uncanonicalised.** SwimTopia's codes drift —
+Wythe's re-brand still exports `WYTHE` where the league registry says `WYTH` —
+and the canonical mapping lives in `gpsa-league`, which is JavaScript. Copying
+that alias table into `build.py` would create a second definition that drifts
+silently, so consumers call `canonicalCode()` themselves. The feed reports what
+the schedule *says*; it does not decide what it *means*.
+
+The build does enforce that every code is one `TEAM_MAP` already knows, and
+**fails the deploy** otherwise. An unrecognised code means a team was added or
+re-branded and this build was not told — better caught here than as a mystery in
+a consumer three repositories away.
+
+`GPSA` and `LEAGUE` appear in the Home/Visiting columns of a league-wide
+invitational as placeholders; the real field is in `Team3..TeamN`. They are not
+teams and never reach the feed.
 
 ## Live scores on the schedule
 
@@ -95,7 +144,7 @@ python build.py          # output in dist/
 ```
 
 Deploy is automatic: pushing to `main` triggers
-`.github/workflows/` → builds `dist/` → `cloudflare/pages-action@v1` publishes to
+`.github/workflows/` → builds `dist/` → `cloudflare/wrangler-action@v4` publishes to
 the `gpsa-schedule` Cloudflare Pages project. To update the live site, drop fresh
 CSV exports in `data/`, commit, and push.
 
