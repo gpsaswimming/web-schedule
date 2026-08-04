@@ -1,0 +1,17 @@
+# Cloudflare Pages headers (https://developers.cloudflare.com/pages/configuration/headers/)
+
+# Allow the results submission tools to fetch the schedule feed cross-origin.
+# This is a static public JSON file — the same information the schedule page
+# already renders — and a plain GET is a CORS "simple request", so this single
+# response header is the entire CORS surface.
+#
+# Scoped to one origin rather than `*` because there is currently one
+# cross-origin browser consumer. The app layer reads this feed server-side,
+# where CORS does not apply, so widening it is a decision about browsers only.
+/schedule.json
+  Access-Control-Allow-Origin: https://submit.gpsaswimming.org
+
+# The feed is rebuilt on every deploy and a stale copy would misidentify a
+# rescheduled meet. Revalidate rather than serving from cache blind.
+/schedule.json
+  Cache-Control: public, max-age=0, must-revalidate
