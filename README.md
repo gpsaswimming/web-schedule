@@ -38,7 +38,7 @@ changes. Aliased abbreviations (e.g. `BLMAR`/`BLMR`) are deduplicated by name.
 | `data/` | SwimTopia CSV exports: `red.csv`, `white.csv`, `blue.csv`, `invitationals.csv`. |
 | `templates/` | Jinja2 templates, one per output page (see below). |
 | `snippets/` | The iframe embed code pasted into SwimTopia (see below). |
-| `_headers` | Cloudflare Pages response headers — CORS and caching for `schedule.json`. |
+| `_headers` | Cloudflare Pages response headers — CORS and caching for `schedule.json`. Note the zone already sends `Access-Control-Allow-Origin: *` for every `gpsaswimming.org` host, so a narrower value here would not be enforced. |
 | `legacy/` | Prior/reference material, not part of the build. |
 | `dist/` | Build output (git-ignored). |
 | `.github/workflows/` | CI: builds and deploys to Cloudflare Pages on push to `main`. |
