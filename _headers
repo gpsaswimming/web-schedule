@@ -5,11 +5,18 @@
 # already renders — and a plain GET is a CORS "simple request", so this single
 # response header is the entire CORS surface.
 #
-# Scoped to one origin rather than `*` because there is currently one
-# cross-origin browser consumer. The app layer reads this feed server-side,
-# where CORS does not apply, so widening it is a decision about browsers only.
+# `*`, TO MATCH WHAT THE ZONE ALREADY SENDS. This rule was first written scoped
+# to one origin, which was wrong in a way worth recording: something at the
+# Cloudflare ZONE level sends `Access-Control-Allow-Origin: *` for every host on
+# gpsaswimming.org — verified on paths with no `_headers` rule at all, and on
+# css.gpsaswimming.org, which has no `_headers` file. A narrower value here is
+# not enforced, so writing one states a restriction that is not in force and
+# would break this feed's only consumer if the zone rule were ever removed.
+#
+# Everything served from this host is public, so `*` discloses nothing: it
+# governs what browser JavaScript on another origin may read, not who may read.
 /schedule.json
-  Access-Control-Allow-Origin: https://submit.gpsaswimming.org
+  Access-Control-Allow-Origin: *
 
 # The feed is rebuilt on every deploy and a stale copy would misidentify a
 # rescheduled meet. Revalidate rather than serving from cache blind.
